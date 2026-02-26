@@ -1,0 +1,13 @@
+.carousel-item .col-xl-3,
+.carousel-item .col-xl-9 {
+  min-width: 0;
+}
+
+.carousel-item {
+  width: 100%;
+}
+
+.carousel-item p {
+  max-width: 100%;
+}
+

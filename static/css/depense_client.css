@@ -1,0 +1,19 @@
+.compact-modal .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.compact-modal label {
+    margin-bottom: 0.2rem;
+    font-size: 0.9rem;
+}
+
+.compact-modal .form-control {
+    padding: 0.3rem 0.5rem;
+    height: auto;
+    font-size: 0.9rem;
+}
+
+.modal-header,
+.modal-footer {
+    padding: 0.5rem 1rem;
+}
