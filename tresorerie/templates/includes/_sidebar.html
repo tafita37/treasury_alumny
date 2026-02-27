@@ -1,0 +1,51 @@
+<nav class="sidebar sidebar-offcanvas" id="sidebar">
+  <ul class="nav">
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'tresorerie_page' %}">
+        <i class="mdi mdi-square-inc-cash menu-icon"></i>
+        <span class="menu-title">Trésorerie</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="../../pages/alumny/prevision_budgetaire.html">
+        <i class="mdi mdi-trending-up menu-icon"></i>
+        <span class="menu-title">Prévision Budgétaire</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-toggle="collapse" href="#transaction" aria-expanded="false" aria-controls="transaction">
+        <!-- <i class="icon-layout menu-icon"></i> -->
+        <i class="mdi mdi-credit-card menu-icon"></i>
+        <span class="menu-title">Transaction</span>
+        <i class="menu-arrow"></i>
+      </a>
+      <div class="collapse" id="transaction">
+        <ul class="nav flex-column sub-menu">
+          <li class="nav-item"> <a class="nav-link" href="../../pages/alumny/depense_client.html">Client</a></li>
+          <li class="nav-item"> <a class="nav-link" href="../../pages/alumny/depense_fournisseur.html">Fournisseur</a>
+          </li>
+          <li class="nav-item"> <a class="nav-link" href="../../pages/alumny/mouvement_argent.html">Caisse</a>
+          </li>
+          <li class="nav-item"> <a class="nav-link" href="../../pages/alumny/facture_regler.html">Facture
+              Réglée</a>
+          </li>
+        </ul>
+      </div>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-toggle="collapse" href="#societe" aria-expanded="false" aria-controls="societe">
+        <!-- <i class="icon-layout menu-icon"></i> -->
+        <i class="mdi mdi-hospital-building menu-icon"></i>
+        <span class="menu-title">Sociétés</span>
+        <i class="menu-arrow"></i>
+      </a>
+      <div class="collapse" id="societe">
+        <ul class="nav flex-column sub-menu">
+          <li class="nav-item"> <a class="nav-link" href="../../pages/alumny/liste_client.html">Client</a></li>
+          <li class="nav-item"> <a class="nav-link" href="../../pages/alumny/liste_fournisseur.html">Fournisseur</a>
+          </li>
+        </ul>
+      </div>
+    </li>
+  </ul>
+</nav>
