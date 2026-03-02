@@ -6,6 +6,8 @@ from django.contrib import messages
 
 @require_GET
 def login_user_page(request):
+    if request.user.is_authenticated:
+        return redirect('tresorerie_page')  # Redirige si déjà connecté
     return render(request, "views/login_user.html")
 
 @require_POST

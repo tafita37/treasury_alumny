@@ -262,85 +262,93 @@ $(function () {
     },
   };
 
-  var dataEncaissement = {
-    labels: [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Avr",
-      "Mai",
-      "Juin",
-      "Juil",
-      "Aoû",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Déc",
-    ],
-    datasets: [
-      {
-        label: "Prévision",
-        data: [480, 230, 470, 210, 330, 480, 230, 470, 210, 330, 480, 230],
-        backgroundColor: "rgba(255, 99, 132, 1)",
-      },
-      {
-        label: "Réel",
-        data: [400, 340, 550, 480, 170, 400, 340, 550, 480, 170, 400, 340],
-        backgroundColor: "rgba(255, 159, 64, 1)",
-      },
-    ],
-  };
+  fetch("/forecast/forecast_financial_data/")
+    .then((response) => response.json())
+    .then((data) => {
+      var dataEncaissement = {
+        labels: [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Avr",
+          "Mai",
+          "Juin",
+          "Juil",
+          "Aoû",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Déc",
+        ],
+        datasets: [
+          {
+            label: "Prévision",
+            data: data.encaissement_prevision,
+            backgroundColor: "rgba(255, 99, 132, 1)",
+          },
+          {
+            label: "Réel",
+            data: [400, 340, 550, 480, 170, 400, 340, 550, 480, 170, 400, 340],
+            backgroundColor: "rgba(255, 159, 64, 1)",
+          },
+        ],
+      };
 
-  var dataDecaissement = {
-    labels: [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Avr",
-      "Mai",
-      "Juin",
-      "Juil",
-      "Aoû",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Déc",
-    ],
-    datasets: [
-      {
-        label: "Prévision",
-        data: [480, 230, 470, 210, 330, 480, 230, 470, 210, 330, 480, 230],
-        backgroundColor: "rgba(255, 99, 132, 1)",
-      },
-      {
-        label: "Réel",
-        data: [400, 340, 550, 480, 170, 400, 340, 550, 480, 170, 400, 340],
-        backgroundColor: "rgba(255, 159, 64, 1)",
-      },
-    ],
-  };
+      var dataDecaissement = {
+        labels: [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Avr",
+          "Mai",
+          "Juin",
+          "Juil",
+          "Aoû",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Déc",
+        ],
+        datasets: [
+          {
+            label: "Prévision",
+            data: data.decaissement_prevision,
+            backgroundColor: "rgba(255, 99, 132, 1)",
+          },
+          {
+            label: "Réel",
+            data: [400, 340, 550, 480, 170, 400, 340, 550, 480, 170, 400, 340],
+            backgroundColor: "rgba(255, 159, 64, 1)",
+          },
+        ],
+      };
 
-  if ($("#barChartEncaissement").length) {
-    var barChartEncaissementCanvas = $("#barChartEncaissement").get(0).getContext("2d");
-    // This will get the first returned node in the jQuery collection.
-    var barChart = new Chart(barChartEncaissementCanvas, {
-      type: "bar",
-      data: dataEncaissement,
-      options: optionsEncaissement,
+      if ($("#barChartEncaissement").length) {
+        var barChartEncaissementCanvas = $("#barChartEncaissement")
+          .get(0)
+          .getContext("2d");
+        // This will get the first returned node in the jQuery collection.
+        var barChart = new Chart(barChartEncaissementCanvas, {
+          type: "bar",
+          data: dataEncaissement,
+          options: optionsEncaissement,
+        });
+        document.getElementById("encaissement-legend").innerHTML =
+          barChart.generateLegend();
+      }
+
+      if ($("#barChartDecaissement").length) {
+        var barChartDecaissementCanvas = $("#barChartDecaissement")
+          .get(0)
+          .getContext("2d");
+        // This will get the first returned node in the jQuery collection.
+        var barChart = new Chart(barChartDecaissementCanvas, {
+          type: "bar",
+          data: dataDecaissement,
+          options: optionsDecaissement,
+        });
+        document.getElementById("decaissement-legend").innerHTML =
+          barChart.generateLegend();
+      }
     });
-    document.getElementById("encaissement-legend").innerHTML =
-        barChart.generateLegend();
-  }
-
-  if ($("#barChartDecaissement").length) {
-    var barChartDecaissementCanvas = $("#barChartDecaissement").get(0).getContext("2d");
-    // This will get the first returned node in the jQuery collection.
-    var barChart = new Chart(barChartDecaissementCanvas, {
-      type: "bar",
-      data: dataDecaissement,
-      options: optionsDecaissement,
-    });
-    document.getElementById("decaissement-legend").innerHTML =
-        barChart.generateLegend();
-  }
 });
