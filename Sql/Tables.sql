@@ -19,15 +19,13 @@ CREATE TABLE users(
    UNIQUE(email)
 );
 
-CREATE TABLE financial_transaction(
+CREATE TABLE forecast(
    id SERIAL,
-   cash_inflow REAL NOT NULL,
-   cash_outflow DOUBLE PRECISION NOT NULL,
-   transaction_date DATE NOT NULL,
-   description TEXT NOT NULL,
-   user_id INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(user_id) REFERENCES users(id)
+   months SMALLINT NOT NULL,
+   years INTEGER NOT NULL,
+   cash_inflow INTEGER NOT NULL,
+   cash_outflow INTEGER NOT NULL,
+   PRIMARY KEY(id)
 );
 
 CREATE TABLE company_type(
@@ -60,29 +58,6 @@ CREATE TABLE company(
    FOREIGN KEY(company_type_id) REFERENCES company_type(id)
 );
 
-CREATE TABLE client(
-   id SERIAL,
-   company_id INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(company_id) REFERENCES company(id)
-);
-
-CREATE TABLE supplier(
-   id SERIAL,
-   company_id INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(company_id) REFERENCES company(id)
-);
-
-CREATE TABLE forecast(
-   id SERIAL,
-   months SMALLINT NOT NULL,
-   years INTEGER NOT NULL,
-   cash_inflow INTEGER NOT NULL,
-   cash_outflow INTEGER NOT NULL,
-   PRIMARY KEY(id)
-);
-
 CREATE TABLE invoice(
    id SERIAL,
    invoice_number VARCHAR(50)  NOT NULL,
@@ -95,6 +70,31 @@ CREATE TABLE invoice(
    company_id INTEGER NOT NULL,
    PRIMARY KEY(id),
    UNIQUE(invoice_number),
+   FOREIGN KEY(company_id) REFERENCES company(id)
+);
+
+CREATE TABLE financial_transaction(
+   id SERIAL,
+   cash_inflow REAL NOT NULL,
+   cash_outflow DOUBLE PRECISION NOT NULL,
+   transaction_date DATE NOT NULL,
+   description TEXT NOT NULL,
+   user_id INTEGER NOT NULL,
+   PRIMARY KEY(id),
+   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE client(
+   id SERIAL,
+   company_id INTEGER NOT NULL,
+   PRIMARY KEY(id),
+   FOREIGN KEY(company_id) REFERENCES company(id)
+);
+
+CREATE TABLE supplier(
+   id SERIAL,
+   company_id INTEGER NOT NULL,
+   PRIMARY KEY(id),
    FOREIGN KEY(company_id) REFERENCES company(id)
 );
 
