@@ -110,14 +110,15 @@ CREATE TABLE payment(
    FOREIGN KEY(invoice_id) REFERENCES invoice(id)
 );
 
-
 CREATE TABLE financial_transaction(
    id SERIAL,
+   transaction_number VARCHAR(50),
    cash_inflow REAL NOT NULL,
    cash_outflow DOUBLE PRECISION NOT NULL,
    transaction_date DATE NOT NULL,
    description TEXT NOT NULL,
    user_id INTEGER NOT NULL,
    PRIMARY KEY(id),
+   -- UNIQUE(transaction_number),
    FOREIGN KEY(user_id) REFERENCES users(id)
 );

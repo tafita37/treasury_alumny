@@ -1,6 +1,6 @@
 from django.urls import path
 
-from tresorerie.controllers.TreasuryController import facture_client_page, facture_fournisseur_page, new_paiement_client, new_paiement_fournisseur, newFactureClient, newFactureFournisseur, tresorerie_page
+from tresorerie.controllers.TreasuryController import facture_client_page, facture_fournisseur_page, mouvement_argent_page, new_mouvement_argent, new_paiement_client, new_paiement_fournisseur, newFactureClient, newFactureFournisseur, tresorerie_page
 
 urlpatterns = [
     path('treasury_page/', tresorerie_page, name='tresorerie_page'),
@@ -10,4 +10,6 @@ urlpatterns = [
     path('new_invoice_supplier/', newFactureFournisseur, name='new_facture_fournisseur'),
     path('new_payment_client/', new_paiement_client, name='new_paiement_client'),
     path('new_payment_supplier/', new_paiement_fournisseur, name='new_paiement_fournisseur'),
+    path('financial_transaction_page/', mouvement_argent_page, name='mouvement_argent_page'),
+    path('new_financial_transaction/', new_mouvement_argent, name='new_mouvement_argent'),
 ]

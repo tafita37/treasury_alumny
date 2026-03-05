@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Caisse{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="content-wrapper">
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="content-wrapper">
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#newMouvementModal">
+            <i class="mdi mdi-file-plus mr-1"></i> Nouveau mouvement d'argent
+        </button>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Mouvement d'argent</h4>
+                    <form action="{% url 'mouvement_argent_page' %}" method="get">
+                        <div class="row mb-1">
+                            <div class="col-md-3">
+                                <input type="text" id="filterReference" class="form-control" name="num_reference"
+                                    placeholder="Rechercher une référence" value="{{search_filters.transaction_number}}">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="date" id="filterDate" class="form-control" name="date_mouvement" value="{{search_filters.transaction_date}}">
+                            </div>
+                            <div class="col-md-3">
+                                <select id="filterType" class="form-control" name="transaction_type">
+                                    <option value="">Tous les types</option>
+                                    <option value="1">Encaissement</option>
+                                    <option value="2">Décaissement</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-primary btn-block">
+                                    Filtrer
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- <p class="card-description">
+                    Add class <code>.table-bordered</code>
+                  </p> -->
+                    <div class="table-responsive pt-3">
+                        <table class="table table-striped table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Raison</th>
+                                    <th>Montant</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mouvement in mouvements %}
+                                <tr>
+                                    <td>{{ mouvement.transaction_number }}</td>
+                                    <td>{{ mouvement.description }}</td>
+                                    <td>
+                                        {% if mouvement.cash_inflow != 0 %}
+                                        {{ mouvement.cash_inflow }}
+                                        {% else %}
+                                        {{ mouvement.cash_outflow }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ mouvement.transaction_date|date:"d/m/Y" }}
+                                    </td>
+                                    <td class="font-weight-medium">
+                                        {% if mouvement.cash_inflow != 0 %}
+                                        <div class="badge badge-success">Encaissement</div>
+                                        {% else %}
+                                        <div class="badge badge-danger">Décaissement</div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <!-- ===== CAS VIDE : AUCUNE mouvement ===== -->
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <i class="mdi mdi-file-document-box-outline"
+                                                style="font-size: 48px; color: #6c757d;"></i>
+                                            <h5 class="mt-3 text-muted">Aucun mouvement trouvé</h5>
+                                            <p class="text-muted mb-3">
+                                                {% if page_vide %}
+                                                Cette page ne contient aucun mouvement.
+                                                {% else %}
+                                                Commencez par créer un mouvement d'argent.
+                                                {% endif %}
+                                            </p>
+                                            {% if not page_vide %}
+                                            <button class="btn btn-primary btn-sm" data-toggle="modal"
+                                                data-target="#newInvoiceModal">
+                                                <i class="mdi mdi-file-plus mr-1"></i> Créer un mouvement
+                                            </button>
+                                            {% else %}
+                                            <a href="{% url 'mouvement_fournisseur_page' %}?page=1"
+                                                class="btn btn-outline-primary btn-sm">
+                                                <i class="mdi mdi-arrow-left mr-1"></i> Retour à la page 1
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-end mt-3">
+                            <nav>
+                                <ul class="pagination mb-0">
+
+                                    <!-- Bouton PRÉCÉDENT -->
+                                    {% if mouvements.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="{% url 'mouvement_argent_page' %}?page={{ mouvements.previous_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                            Précédent
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Précédent</a>
+                                    </li>
+                                    {% endif %}
+
+                                    <!-- Affichage DYNAMIQUE des numéros de page -->
+                                    {% for i in mouvements.paginator.page_range %}
+                                    {% if mouvements.number == i %}
+                                    <!-- Page active (courante) -->
+                                    <li class="page-item active" aria-current="page">
+                                        <a class="page-link"
+                                            href="{% url 'mouvement_argent_page' %}?page={{ i }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                            {{ i }}
+                                        </a>
+                                    </li>
+                                    {% elif i > mouvements.number|add:'-3' and i < mouvements.number|add:'3' %} <!--
+                                        Pages autour de la page courante -->
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                                href="{% url 'mouvement_argent_page' %}?page={{ i }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                                {{ i }}
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% endfor %}
+
+                                        <!-- Bouton SUIVANT -->
+                                        {% if mouvements.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                                href="{% url 'mouvement_argent_page' %}?page={{ mouvements.next_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                                Suivant
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Suivant</a>
+                                        </li>
+                                        {% endif %}
+
+                                </ul>
+                            </nav>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- container-scroller -->
+<!-- plugins:js -->
+<div class="modal fade" id="newMouvementModal" tabindex="-1" role="dialog" aria-labelledby="newInvoiceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="newInvoiceModalLabel">Nouveau mouvement</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <form action="{% url 'new_mouvement_argent' %}" method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>Référence</label>
+                        <input type="text" class="form-control" placeholder="Référence" name="num_reference">
+                    </div>
+                    <div class="form-group">
+                        <label>Raison</label>
+                        <textarea name="description" id="" class="form-control" placeholder="Raison"></textarea>
+                        <!-- <input type="text"
+                                placeholder="Raison"> -->
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Date</label>
+                            <input type="date" class="form-control" name="date_transaction">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Montant</label>
+                            <input type="number" class="form-control" placeholder="Montant" name="montant" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <label class="form-check-label">
+                                    <input type="radio" class="form-check-input" name="type_transaction"
+                                        id="type_transaction1" value="1" />
+                                    Encaissement
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <label class="form-check-label">
+                                    <input type="radio" class="form-check-input" name="type_transaction"
+                                        id="type_transaction2" value="2" />
+                                    Décaissement
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
