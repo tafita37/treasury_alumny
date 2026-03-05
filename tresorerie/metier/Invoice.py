@@ -1,5 +1,7 @@
 from django.db import models
 
+from tresorerie.metier.Company import Company
+
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True, db_column='id')
     invoice_number = models.CharField(max_length=50, unique=True)
@@ -13,10 +15,12 @@ class Invoice(models.Model):
     status = models.SmallIntegerField()
 
     company = models.ForeignKey(
-        "Company",
+        Company,
         on_delete=models.PROTECT,
         db_column="company_id"
     )
+    
+    is_supplier = models.BooleanField(db_column='is_supplier')
 
     class Meta:
         db_table = "invoice"

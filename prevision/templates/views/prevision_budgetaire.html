@@ -49,47 +49,39 @@
                                 {% for forecast in forecasts %}
                                 <tr>
                                     <td>{{ forecast.month_name }}</td>
-
+                                    
                                     <!-- CASH INFLOW -->
                                     {% if forecast.cash_inflow != 0 %}
                                     <td class="text-right">
                                         {% localize on %}
                                         {{ forecast.cash_inflow|floatformat:2 }}
                                         {% endlocalize %} €
-                                        {% localize off %}
-                                        <input type="hidden" class="form-control" step="0.01" name="cash_inflow"
-                                            value="{{ forecast.cash_inflow }}">
-                                        {% endlocalize %}
                                     </td>
                                     {% else %}
                                     <td>
                                         {% localize off %}
                                         <input type="number" class="form-control" step="0.01" name="cash_inflow"
-                                            placeholder="Entrez le montant">
+                                        placeholder="Entrez le montant">
                                         {% endlocalize %}
                                     </td>
                                     {% endif %}
-
+                                    
                                     <!-- CASH OUTFLOW -->
                                     {% if forecast.cash_outflow != 0 %}
                                     <td class="text-right">
                                         {% localize on %}
                                         {{ forecast.cash_outflow|floatformat:2 }}
                                         {% endlocalize %} €
-                                        {% localize off %}
-                                        <input type="hidden" class="form-control" step="0.01" name="cash_outflow"
-                                            value="{{ forecast.cash_outflow }}">
-                                        {% endlocalize %}
                                     </td>
                                     {% else %}
                                     <td>
                                         {% localize off %}
                                         <input type="number" class="form-control" step="0.01" name="cash_outflow"
-                                            placeholder="Entrez le montant">
+                                        placeholder="Entrez le montant">
                                         {% endlocalize %}
                                     </td>
                                     {% endif %}
-
+                                    
                                     <!-- ACTION -->
                                     {% if forecast.cash_inflow != 0 and forecast.cash_outflow != 0 %}
                                     <td><button class="btn btn-success btn-sm">Validée</button></td>
@@ -99,12 +91,13 @@
                                         <button class="btn btn-primary btn-sm validate-btn">Valider</button>
                                     </td>
                                     {% endif %}
+                                    <input type="hidden" name="prevision_id" value="{{ forecast.prevision_id }}">
                                 </tr>
                                 {% endfor %}
                             </tbody>
-
+                            
                         </table>
-
+                        
                     </div>
                 </div>
             </div>
@@ -163,21 +156,20 @@
                 const cashInflowInput = row.querySelector('input[name="cash_inflow"]');
                 const monthInput = row.querySelector('input[name="month"]');
                 const cashOutflowInput = row.querySelector('input[name="cash_outflow"]');
+                const previsionIdInput = row.querySelector('input[name="prevision_id"]');
+                const previsionId=previsionIdInput && previsionIdInput.value
+                    ? previsionIdInput.value
+                    : null;
                 const cash_inflow = cashInflowInput && cashInflowInput.value
                     ? parseFloat(cashInflowInput.value)
-                    : 0;
+                    : null;
 
                 const cash_outflow = cashOutflowInput && cashOutflowInput.value
                     ? parseFloat(cashOutflowInput.value)
-                    : 0;
+                    : null;
                 const month = monthInput ? monthInput.value : '';
                 const year = document.getElementById('filterDate').value;
                 console.log("Month:", month, "Year:", year, "Cash Inflow:", cash_inflow, "Cash Outflow:", cash_outflow);
-
-                if (!cash_inflow) {
-                    alert("Entrez un montant !");
-                    return;
-                }
 
                 // Envoi via fetch POST
                 fetch("{% url 'prevision' %}", {
@@ -191,23 +183,24 @@
                         year: year,
                         cash_inflow: cash_inflow,
                         cash_outflow: cash_outflow,
+                        prevision_id: previsionId
                     })
                 })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
                             // Remplacer l'input et le bouton par la version validée
-                            if(cash_inflow!=0){
+                            if (cash_inflow != null) {
                                 const td2 = row.querySelector('td:nth-child(2)');
                                 td2.textContent = cash_inflow.toFixed(2) + ' €';
                                 td2.classList.add('text-right');
                             }
-                            if(cash_outflow!=0){
+                            if (cash_outflow != null) {
                                 const td3 = row.querySelector('td:nth-child(3)');
                                 td3.textContent = cash_outflow.toFixed(2) + ' €';
                                 td3.classList.add('text-right');
                             }
-                            if(cash_inflow!=0&&cash_outflow!=0){
+                            if (cash_inflow != null && cash_outflow != null) {
                                 row.querySelector('td:nth-child(4)').innerHTML = '<button class="btn btn-success btn-sm">Validée</button>';
                             }
                         } else {

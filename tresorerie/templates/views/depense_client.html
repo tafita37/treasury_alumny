@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Facture - Client{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#newInvoiceModal">
+            <i class="mdi mdi-file-plus mr-1"></i> Nouvelle facture
+        </button>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Facture par client</h4>
+
+                    <form action="{% url 'facture_client_page' %}" method="GET">
+                        <div class="row mb-1">
+                            <div class="col-md-2">
+                                <input placeholder="Référence" type="text" class="form-control" name="reference"
+                                    value="{{ filtres.reference|default:'' }}">
+                            </div>
+                            <div class="col-md-2">
+                                <!-- <label class="font-weight-bold">Fournisseur</label> -->
+                                <select class="form-control" name="client">
+                                    <option value="">Tous les clients</option>
+                                    {% for client in listeClient %}
+                                    <option value="{{ client.id }}" 
+                                        {% if client.id|stringformat:"s" == filtres.client %} selected {% endif %}>
+                                        {{ client.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <!-- <label class="font-weight-bold">Année</label> -->
+                                <input type="number" class="form-control" placeholder="2026" min="2000" max="2100"
+                                    name="annee" value="{{ filtres.annee|default:'' }}">
+                            </div>
+
+                            <div class="col-md-2">
+                                <!-- <label class="font-weight-bold">Mois</label> -->
+                                <select class="form-control" name="mois">
+                                    <option value="">Tous les mois</option>
+                                    {% for month in months %}
+                                    <option value="{{ month.id }}">{{ month.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <!-- <label class="font-weight-bold">État</label> -->
+                                <select class="form-control" name="status">
+                                    <option value="">Tous les états</option>
+                                    {% for etat in etats %}
+                                    <option value="{{ etat.id }}">{{ etat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-primary btn-block">
+                                    Filtrer
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- <p class="card-description">
+                    Add class <code>.table-bordered</code>
+                  </p> -->
+                    <div class="table-responsive pt-3">
+                        <table class="table table-striped table-compact">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        #
+                                    </th>
+                                    <th>
+                                        Client
+                                    </th>
+                                    <th>
+                                        Numéro de facture
+                                    </th>
+                                    <th>
+                                        Date de facture
+                                    </th>
+                                    <th>
+                                        Date de paiement prévu
+                                    </th>
+                                    <th>
+                                        Montant de la facture
+                                    </th>
+                                    <th>
+                                        Etat
+                                    </th>
+                                    <th>
+                                        Encaisser
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for facture in factures %}
+                                <tr>
+                                    <td>{{ forloop.counter0|add:factures.start_index }}</td>
+                                    <td><a href="{{ facture.company.website_url }}">{{ facture.company.name }}</a></td>
+                                    <td>
+                                        {% if facture.pdf_file %}
+                                        <a href="{{ facture.pdf_file.url }}"
+                                            download="{{ facture.invoice_number }}.pdf">
+                                            {{ facture.invoice_number }}
+                                        </a>
+                                        {% else %}
+                                        {{ facture.invoice_number }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ facture.invoice_date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if facture.expected_payment_date %}
+                                        {{ facture.expected_payment_date|date:"d/m/Y" }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">{{ facture.total_amount|floatformat:2 }} €</td>
+                                    <td>
+                                        {% if facture.status == 1 %}
+                                        <label class="badge badge-success">Payée</label>
+                                        {% elif facture.status == 2 %}
+                                        <label class="badge badge-info">Facturé</label>
+                                        {% elif facture.status == 3 %}
+                                        <label class="badge badge-danger">En retard</label>
+                                        {% else %}
+                                        <label class="badge badge-secondary">{{ facture.status }}</label>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if facture.status != 2 %}
+                                        <button class="btn btn-sm btn-outline-primary disabled" tabindex="-1"
+                                            aria-disabled="true" style="pointer-events: none;">
+                                            <i class="mdi mdi-credit-card"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-primary" data-toggle="modal"
+                                            data-target="#newEncaissement" data-facture-id="{{ facture.id }}"
+                                            data-facture-num="{{ facture.invoice_number }}"
+                                            data-montant="{{ facture.total_amount }}">
+                                            <i class="mdi mdi-credit-card"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <!-- ===== CAS VIDE : AUCUNE FACTURE ===== -->
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <i class="mdi mdi-file-document-box-outline"
+                                                style="font-size: 48px; color: #6c757d;"></i>
+                                            <h5 class="mt-3 text-muted">Aucune facture trouvée</h5>
+                                            <p class="text-muted mb-3">
+                                                {% if page_vide %}
+                                                Cette page ne contient aucune facture.
+                                                {% else %}
+                                                Commencez par créer votre première facture client.
+                                                {% endif %}
+                                            </p>
+                                            {% if not page_vide %}
+                                            <button class="btn btn-primary btn-sm" data-toggle="modal"
+                                                data-target="#newInvoiceModal">
+                                                <i class="mdi mdi-file-plus mr-1"></i> Créer une facture
+                                            </button>
+                                            {% else %}
+                                            <a href="{% url 'facture_client_page' %}?page=1"
+                                                class="btn btn-outline-primary btn-sm">
+                                                <i class="mdi mdi-arrow-left mr-1"></i> Retour à la page 1
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-end mt-3">
+                            <nav>
+                                <ul class="pagination mb-0">
+
+                                    <!-- Bouton PRÉCÉDENT -->
+                                    {% if factures.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="{% url 'facture_client_page' %}?page={{ factures.previous_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                            Précédent
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Précédent</a>
+                                    </li>
+                                    {% endif %}
+
+                                    <!-- Affichage DYNAMIQUE des numéros de page -->
+                                    {% for i in factures.paginator.page_range %}
+                                    {% if factures.number == i %}
+                                    <!-- Page active (courante) -->
+                                    <li class="page-item active" aria-current="page">
+                                        <a class="page-link"
+                                            href="{% url 'facture_client_page' %}?page={{ i }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                            {{ i }}
+                                        </a>
+                                    </li>
+                                    {% elif i > factures.number|add:'-3' and i < factures.number|add:'3' %} <!-- Pages
+                                        autour de la page courante -->
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                                href="{% url 'facture_client_page' %}?page={{ i }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                                {{ i }}
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% endfor %}
+
+                                        <!-- Bouton SUIVANT -->
+                                        {% if factures.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                                href="{% url 'facture_client_page' %}?page={{ factures.next_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                                Suivant
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Suivant</a>
+                                        </li>
+                                        {% endif %}
+
+                                </ul>
+                            </nav>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="newInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="newInvoiceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="newInvoiceModalLabel">Nouvelle facture</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'new_facture_client' %}">
+                <div class="modal-body">
+
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Client</label>
+                            <select name="client" id="" class="form-control">
+                                <option value="">Client</option>
+                                {% for client in listeClient %}
+                                <option value="{{ client.id }}">{{ client.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Référence facture</label>
+                            <input type="text" class="form-control" placeholder="Référence de la facture"
+                                name="num_reference">
+                        </div>
+
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Date</label>
+                            <input type="date" class="form-control" name="date_facture">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Montant</label>
+                            <input type="number" class="form-control" placeholder="Montant de la facture"
+                                name="montant_facture">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date de paiement prévu</label>
+                        <input type="date" class="form-control" name="date_paiement_prevu">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Facture en PDF</label>
+                        <input type="file" name="img[]" class="file-upload-default" />
+                        <div class="input-group col-xs-12">
+                            <input type="text" class="form-control file-upload-info" disabled
+                                placeholder="Facture PDF" />
+                            <span class="input-group-append">
+                                <button class="file-upload-browse btn btn-primary" type="button">
+                                    Upload
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+
+
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="newEncaissement" tabindex="-1" role="dialog" aria-labelledby="newEncaissementLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <!-- Modifiez le titre de la modale comme ceci -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="newEncaissementLabel">Encaisser <span id="factureNumero"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <form method="post" action="{% url 'new_paiement_client' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+
+                    <div class="form-group ">
+                        <label>Date de paiement</label>
+                        <input type="date" class="form-control" name="date_paiement">
+                    </div>
+                    <div class="form-group">
+                        <label>Etat de paiement</label>
+                        <select class="form-control" name="status">
+                            <option value="">Etat</option>
+                            {% for etat in etats %}
+                            {% if etat.id != 2 %} <!-- ✅ Affiche seulement si l'ID n'est pas 2 -->
+                            <option value="{{ etat.id }}">{{ etat.name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" name="facture_id">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        $('#newEncaissement').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget); // Bouton qui a ouvert la modale
+            var factureNum = button.data('facture-num'); // Récupère le numéro de facture
+            var invoiceId = button.data('facture-id'); // Récupère l'ID de la facture
+
+            // Met à jour le titre
+            $('#factureNumero').text(factureNum);
+            $('input[name="facture_id"]').val(invoiceId);
+        });
+    });
+</script>
+{% endblock %}

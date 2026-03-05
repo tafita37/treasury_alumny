@@ -3,27 +3,14 @@ import json
 from django.utils import timezone
 
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
-
+from django.contrib.auth.decorators import login_required
+from Constantes import MONTH_NAMES
 from prevision.metier.Forecast import Forecast
 
-MONTH_NAMES = {
-    1: "Janvier",
-    2: "Février",
-    3: "Mars",
-    4: "Avril",
-    5: "Mai",
-    6: "Juin",
-    7: "Juillet",
-    8: "Août",
-    9: "Septembre",
-    10: "Octobre",
-    11: "Novembre",
-    12: "Décembre"
-}
-
 @require_GET
+@login_required(login_url='login_user_page') 
 def prevision_encaissement_page(request):
     year = request.GET.get('year', timezone.now().year)
     print(f"Year: {year}")
@@ -38,7 +25,8 @@ def prevision_encaissement_page(request):
                 'month_name': MONTH_NAMES[f.months],
                 'years': f.years,
                 'cash_inflow': f.cash_inflow,
-                'cash_outflow': f.cash_outflow
+                'cash_outflow': f.cash_outflow,
+                'prevision_id' : f.id
             })
         else:
             forecasts.append({
@@ -46,11 +34,13 @@ def prevision_encaissement_page(request):
                 'month_name': MONTH_NAMES[month],
                 'years': year,
                 'cash_inflow': 0,
-                'cash_outflow': 0
+                'cash_outflow': 0,
+                'prevision_id' : ''
             })
     return render(request, "views/prevision_encaissement.html", {'forecasts': forecasts, 'year': year})
 
 @require_GET
+@login_required(login_url='login_user_page') 
 def prevision_decaissement_page(request):
     year = request.GET.get('year', timezone.now().year)
     existing_forecasts = {f.months: f for f in Forecast.objects.filter(years=year)}
@@ -64,7 +54,8 @@ def prevision_decaissement_page(request):
                 'month_name': MONTH_NAMES[f.months],
                 'years': f.years,
                 'cash_inflow': f.cash_inflow,
-                'cash_outflow': f.cash_outflow
+                'cash_outflow': f.cash_outflow,
+                'prevision_id' : f.id
             })
         else:
             forecasts.append({
@@ -72,31 +63,48 @@ def prevision_decaissement_page(request):
                 'month_name': MONTH_NAMES[month],
                 'years': year,
                 'cash_inflow': 0,
-                'cash_outflow': 0
+                'cash_outflow': 0,
+                'prevision_id' : ''
             })
     return render(request, "views/prevision_decaissement.html", {'forecasts': forecasts, 'year': year})
 
 @require_POST
+@login_required(login_url='login_user_page') 
 def prevision(request):
     data = json.loads(request.body)
+    prevision_id=data.get('prevision_id')
     month = data.get('month')
     cash_inflow = data.get('cash_inflow')
     cash_outflow = data.get('cash_outflow')
     year = data.get('year')
-    print("year")
-
-    Forecast.objects.update_or_create(
-        months=month,
-        years=year,
-        defaults={
-            'cash_inflow': cash_inflow,
-            'cash_outflow': cash_outflow
-        }
-    )
+    if prevision_id:
+        forecast=Forecast.objects.filter(id=prevision_id).first()
+        if cash_inflow is None:
+            cash_inflow = forecast.cash_inflow
+        if cash_outflow is None:
+            cash_outflow = forecast.cash_outflow
+        Forecast.objects.filter(id=prevision_id).update(
+            cash_inflow=cash_inflow,
+            cash_outflow=cash_outflow
+        )
+    else :
+        if cash_inflow is None:
+            cash_inflow = 0
+        if cash_outflow is None:
+            cash_outflow = 0
+        Forecast.objects.update_or_create(
+            months=month,
+            years=year,
+            defaults={
+                'cash_inflow': cash_inflow,
+                'cash_outflow': cash_outflow
+            }
+        )
 
     return JsonResponse({'success': True})
 
 @require_GET
+@login_required(login_url='login_user_page') 
 def prevision_budgetaire_page(request):
     year = request.GET.get('year', timezone.now().year)
     existing_forecasts = {f.months: f for f in Forecast.objects.filter(years=year)}
@@ -110,7 +118,8 @@ def prevision_budgetaire_page(request):
                 'month_name': MONTH_NAMES[f.months],
                 'years': f.years,
                 'cash_inflow': f.cash_inflow,
-                'cash_outflow': f.cash_outflow
+                'cash_outflow': f.cash_outflow,
+                'prevision_id' : f.id
             })
         else:
             forecasts.append({
@@ -118,11 +127,13 @@ def prevision_budgetaire_page(request):
                 'month_name': MONTH_NAMES[month],
                 'years': year,
                 'cash_inflow': 0,
-                'cash_outflow': 0
+                'cash_outflow': 0,
+                'prevision_id' : ''
             })
     return render(request, "views/prevision_budgetaire.html", {'forecasts': forecasts, 'year': year})
 
 @require_GET
+@login_required(login_url='login_user_page') 
 def prevision_chart_data(request):
     year = request.GET.get('year', timezone.now().year)
     existing_forecasts = {f.months: f for f in Forecast.objects.filter(years=year)}
