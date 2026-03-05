@@ -1,15 +1,18 @@
 # views.py
+from django.contrib import messages
+
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
 from Constantes import ETAT, MONTHS
 from tresorerie.metier.Company import Company
 from django.core.paginator import Paginator, EmptyPage
+from tresorerie.metier.FinancialTransaction import FinancialTransaction
 from tresorerie.metier.Invoice import Invoice
 from datetime import datetime
 from django.db.models import Q
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
 from tresorerie.metier.Payment import Payment
 
 @require_GET
@@ -178,39 +181,149 @@ def newFactureFournisseur(request):
 @require_POST
 @login_required(login_url='login_user_page')
 def new_paiement_client(request):
-    payment_date = datetime.strptime(request.POST.get('date_paiement'), '%Y-%m-%d').date()
-    invoice = Invoice.objects.get(id=request.POST.get('facture_id'))
-    status=request.POST.get('status', '')
-    if not status :
-        status=3 if invoice.expected_payment_date<payment_date else 2
-    Payment.objects.create(
-        amount=invoice.total_amount,
-        payment_date=payment_date,
-        invoice=invoice,
-    )
-    Invoice.objects.filter(id=invoice.id).update(
-        actual_payment_date=payment_date,
-        paid_amount=invoice.paid_amount + float(invoice.total_amount),
-        status=status
-    )
+    try:
+        payment_date = datetime.strptime(request.POST.get('date_paiement'), '%Y-%m-%d').date()
+        invoice = Invoice.objects.get(id=request.POST.get('facture_id'))
+        status = request.POST.get('status', '')
+        
+        payment = Payment(
+            amount=invoice.total_amount,
+            payment_date=payment_date,
+            invoice=invoice
+        )
+        payment.save(user=request.user, status=status)
+        
+        messages.success(request, "Paiement client enregistré avec succès")
+        
+    except Invoice.DoesNotExist:
+        messages.error(request, "Facture introuvable")
+    except ValidationError as e:
+        messages.error(request, str(e.messages[0]))
+    except Exception as e:
+        messages.error(request, f"Erreur inattendue : {str(e)}")
+    
     return redirect('facture_client_page')
 
 @require_POST
 @login_required(login_url='login_user_page')
 def new_paiement_fournisseur(request):
-    payment_date = datetime.strptime(request.POST.get('date_paiement'), '%Y-%m-%d').date()
-    invoice = Invoice.objects.get(id=request.POST.get('facture_id'))
-    status=request.POST.get('status', '')
-    if not status :
-        status=3 if invoice.expected_payment_date<payment_date else 2
-    Payment.objects.create(
-        amount=invoice.total_amount,
-        payment_date=payment_date,
-        invoice=invoice,
-    )
-    Invoice.objects.filter(id=invoice.id).update(
-        actual_payment_date=payment_date,
-        paid_amount=invoice.paid_amount + float(invoice.total_amount),
-        status=status
-    )
+    try:
+        payment_date = datetime.strptime(request.POST.get('date_paiement'), '%Y-%m-%d').date()
+        invoice = Invoice.objects.get(id=request.POST.get('facture_id'))
+        status = request.POST.get('status', '')
+        
+        payment = Payment(
+            amount=invoice.total_amount,
+            payment_date=payment_date,
+            invoice=invoice
+        )
+        payment.save(user=request.user, status=status)
+        
+        messages.success(request, "Paiement fournisseur enregistré avec succès")
+        
+    except Invoice.DoesNotExist:
+        messages.error(request, "Facture introuvable")
+    except ValidationError as e:
+        messages.error(request, str(e.messages[0]))
+    except Exception as e:
+        messages.error(request, f"Erreur inattendue : {str(e)}")
+    
     return redirect('facture_fournisseur_page')
+
+@require_GET
+@login_required(login_url='login_user_page')
+def mouvement_argent_page(request):
+    # Récupération des paramètres de recherche
+    transaction_number = request.GET.get('num_reference', '')
+    transaction_date = request.GET.get('date_mouvement', '')
+    transaction_type = request.GET.get('transaction_type', '')  # 'inflow', 'outflow', ou vide
+    
+    # Construction des filtres avec Q
+    filters = Q()
+    
+    if transaction_number:
+        filters &= Q(id__icontains=transaction_number)  # Recherche par ID (transaction_number)
+    
+    if transaction_date:
+        filters &= Q(transaction_date=transaction_date)  # Recherche exacte par date
+    
+    if transaction_type == '1':
+        filters &= Q(cash_inflow__gt=0)  # Transactions avec entrée d'argent
+    elif transaction_type == '2':
+        filters &= Q(cash_outflow__gt=0)  # Transactions avec sortie d'argent
+    
+    # Récupération des transactions avec filtres appliqués
+    mouvements_list = FinancialTransaction.objects.filter(filters).order_by('-transaction_date')
+    
+    # Pagination
+    paginator = Paginator(mouvements_list, 20)
+    
+    try:
+        mouvements = paginator.page(request.GET.get('page', 1))
+    except (EmptyPage, ValueError, TypeError):
+        mouvements = paginator.page(1) if paginator.num_pages > 0 else []
+    
+    # Types de transactions pour le select dans le template
+    transaction_types = [
+        {'value': '', 'label': 'Tous les types'},
+        {'value': 'inflow', 'label': 'Entrées (cash inflow)'},
+        {'value': 'outflow', 'label': 'Sorties (cash outflow)'},
+    ]
+    
+    context = {
+        'mouvements': mouvements,
+        'page_vide': isinstance(mouvements, list),
+        'transaction_types': transaction_types,
+        # Pour préserver les valeurs des filtres dans le template
+        'search_filters': {
+            'transaction_number': transaction_number,
+            'transaction_date': transaction_date,
+            'transaction_type': transaction_type,
+        }
+    }
+    
+    return render(request, "views/mouvement_argent.html", context)
+
+@require_POST
+@login_required(login_url='login_user_page')
+def new_mouvement_argent(request):
+    try:
+        # Récupération des données
+        transaction_number = request.POST.get('num_reference')
+        montant = float(request.POST.get('montant'))
+        transaction_date = datetime.strptime(request.POST.get('date_transaction'), '%Y-%m-%d').date()
+        description = request.POST.get('description')
+        type_transaction = request.POST.get('type_transaction')
+        
+        # Détermination du type de flux
+        if type_transaction == "1":  # Attention : type_transaction est une string
+            cash_inflow = montant
+            cash_outflow = 0.0
+        else:
+            cash_inflow = 0.0
+            cash_outflow = montant
+        
+        # Création de l'objet (la validation se fait dans save())
+        transaction = FinancialTransaction(
+            transaction_number=transaction_number,
+            cash_inflow=cash_inflow,
+            cash_outflow=cash_outflow,
+            transaction_date=transaction_date,
+            description=description,
+            user=request.user
+        )
+        
+        # Sauvegarde avec validation automatique
+        transaction.save()
+        
+        messages.success(request, "Mouvement créé avec succès")
+        
+    except ValidationError as e:
+        # Capture les erreurs de validation (dont le stock insuffisant)
+        messages.error(request, str(e.messages[0]))
+    except ValueError as e:
+        messages.error(request, f"Erreur de format : {str(e)}")
+    except Exception as e:
+        messages.error(request, f"Erreur inattendue : {str(e)}")
+    
+    return redirect('mouvement_argent_page')
