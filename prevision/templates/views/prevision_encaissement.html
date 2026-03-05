@@ -60,11 +60,11 @@
                                         <input type="number" class="form-control" placeholder="Entrez le montant"
                                             step="0.01" name="cash_inflow">
                                         <input type="hidden" name="month" value="{{ forecast.months }}">
-                                        <input type="hidden" name="cash_outflow" value="{{ forecast.cash_outflow }}">
                                         {% endlocalize %}
-                                        </td>
+                                    </td>
                                     <td><button class="btn btn-primary btn-sm  validate-btn">Valider</button></td>
                                     {% endif %}
+                                    <input type="hidden" name="prevision_id" value="{{ forecast.prevision_id }}">
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -130,18 +130,12 @@
                 // Récupérer les inputs par leurs name
                 const cashInflowInput = row.querySelector('input[name="cash_inflow"]');
                 const monthInput = row.querySelector('input[name="month"]');
-                const cashOutflowInput = row.querySelector('input[name="cash_outflow"]');
+                const previsionIdInput = row.querySelector('input[name="prevision_id"]');
 
                 const cash_inflow = cashInflowInput ? cashInflowInput.value : 0;
                 const month = monthInput ? monthInput.value : '';
                 const year = document.getElementById('filterDate').value;
-                console.log("Month:", month, "Year:", year, "Cash Inflow:", cash_inflow);
-                const cash_outflow = cashOutflowInput ? cashOutflowInput.value : 0;
-
-                if (!cash_inflow) {
-                    alert("Entrez un montant !");
-                    return;
-                }
+                const prevision_id = previsionIdInput ? previsionIdInput.value : 0;
 
                 // Envoi via fetch POST
                 fetch("{% url 'prevision' %}", {
@@ -154,7 +148,7 @@
                         month: month,
                         year: year,
                         cash_inflow: cash_inflow,
-                        cash_outflow: cash_outflow,
+                        prevision_id: prevision_id,
                     })
                 })
                     .then(response => response.json())

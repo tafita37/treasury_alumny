@@ -12,6 +12,7 @@ class Company(models.Model):
     website_url = models.TextField(unique=True, db_column='website_url')
     created_at = models.DateField(db_column='created_at')
     is_supplier = models.BooleanField(db_column='is_supplier')
+    is_client = models.BooleanField(db_column='is_client')
     
     company_type = models.ForeignKey(
         CompanyType,

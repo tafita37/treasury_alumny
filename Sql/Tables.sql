@@ -19,6 +19,15 @@ CREATE TABLE users(
    UNIQUE(email)
 );
 
+CREATE TABLE user_role(
+   id SERIAL,
+   role_id INTEGER,
+   user_id INTEGER,
+   PRIMARY KEY(id),
+   FOREIGN KEY(role_id) REFERENCES role(id),
+   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE forecast(
    id SERIAL,
    months SMALLINT NOT NULL,
@@ -46,6 +55,7 @@ CREATE TABLE company(
    website_url TEXT NOT NULL,
    created_at DATE NOT NULL,
    is_supplier BOOLEAN NOT NULL,
+   is_client BOOLEAN NOT NULL,
    company_type_id INTEGER NOT NULL,
    PRIMARY KEY(id),
    UNIQUE(name),
@@ -56,32 +66,6 @@ CREATE TABLE company(
    UNIQUE(address),
    UNIQUE(website_url),
    FOREIGN KEY(company_type_id) REFERENCES company_type(id)
-);
-
-CREATE TABLE invoice(
-   id SERIAL,
-   invoice_number VARCHAR(50)  NOT NULL,
-   invoice_date DATE NOT NULL,
-   expected_payment_date DATE NOT NULL,
-   actual_payment_date DATE,
-   total_amount REAL NOT NULL,
-   paid_amount REAL NOT NULL,
-   status SMALLINT NOT NULL,
-   company_id INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   UNIQUE(invoice_number),
-   FOREIGN KEY(company_id) REFERENCES company(id)
-);
-
-CREATE TABLE financial_transaction(
-   id SERIAL,
-   cash_inflow REAL NOT NULL,
-   cash_outflow DOUBLE PRECISION NOT NULL,
-   transaction_date DATE NOT NULL,
-   description TEXT NOT NULL,
-   user_id INTEGER NOT NULL,
-   PRIMARY KEY(id),
-   FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
 CREATE TABLE client(
@@ -98,22 +82,42 @@ CREATE TABLE supplier(
    FOREIGN KEY(company_id) REFERENCES company(id)
 );
 
+CREATE TABLE invoice(
+   id SERIAL,
+   invoice_number VARCHAR(50)  NOT NULL,
+   invoice_date DATE NOT NULL,
+   expected_payment_date DATE NOT NULL,
+   actual_payment_date DATE,
+   total_amount REAL NOT NULL,
+   paid_amount REAL NOT NULL,
+   status SMALLINT NOT NULL,
+   company_id INTEGER NOT NULL,
+   is_supplier BOOLEAN NOT NULL,
+   PRIMARY KEY(id),
+   UNIQUE(invoice_number),
+   FOREIGN KEY(company_id) REFERENCES company(id)
+);
+
 CREATE TABLE payment(
    id SERIAL,
-   payment_number VARCHAR(50)  NOT NULL,
+   payment_number VARCHAR(50),
+   -- payment_number VARCHAR(50)  NOT NULL,
    amount DOUBLE PRECISION NOT NULL,
    payment_date DATE NOT NULL,
    invoice_id INTEGER NOT NULL,
    PRIMARY KEY(id),
-   UNIQUE(payment_number),
+   -- UNIQUE(payment_number),
    FOREIGN KEY(invoice_id) REFERENCES invoice(id)
 );
 
-CREATE TABLE user_role(
+
+CREATE TABLE financial_transaction(
    id SERIAL,
-   role_id INTEGER,
-   user_id INTEGER,
+   cash_inflow REAL NOT NULL,
+   cash_outflow DOUBLE PRECISION NOT NULL,
+   transaction_date DATE NOT NULL,
+   description TEXT NOT NULL,
+   user_id INTEGER NOT NULL,
    PRIMARY KEY(id),
-   FOREIGN KEY(role_id) REFERENCES role(id),
    FOREIGN KEY(user_id) REFERENCES users(id)
 );
