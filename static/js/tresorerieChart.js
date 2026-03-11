@@ -1,6 +1,18 @@
 $(function () {
   "use strict";
 
+  // Variables pour stocker les graphiques
+  var barChartEncaissement, barChartDecaissement;
+
+  // Récupérer les inputs année
+  var $anneeEncaissement = $('.col-lg-6:first input[type="number"]');
+  var $anneeDecaissement = $('.col-lg-6:last input[type="number"]');
+
+  // Valeur par défaut (année courante)
+  var currentYear = new Date().getFullYear();
+  $anneeEncaissement.val(currentYear);
+  $anneeDecaissement.val(currentYear);
+
   var clientPieData = {
     datasets: [
       {
@@ -262,93 +274,237 @@ $(function () {
     },
   };
 
-  fetch("/forecast/forecast_financial_data/")
-    .then((response) => response.json())
-    .then((data) => {
-      var dataEncaissement = {
-        labels: [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Avr",
-          "Mai",
-          "Juin",
-          "Juil",
-          "Aoû",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Déc",
-        ],
-        datasets: [
-          {
-            label: "Prévision",
-            data: data.encaissement_prevision,
-            backgroundColor: "rgba(255, 99, 132, 1)",
-          },
-          {
-            label: "Réel",
-            data: [400, 340, 550, 480, 170, 400, 340, 550, 480, 170, 400, 340],
-            backgroundColor: "rgba(255, 159, 64, 1)",
-          },
-        ],
-      };
+  // Fonction pour charger toutes les données (encaissement et décaissement)
+  function loadAllData(year) {
+    if (year.toString().length !== 4) return;
 
-      var dataDecaissement = {
-        labels: [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Avr",
-          "Mai",
-          "Juin",
-          "Juil",
-          "Aoû",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Déc",
-        ],
-        datasets: [
-          {
-            label: "Prévision",
-            data: data.decaissement_prevision,
-            backgroundColor: "rgba(255, 99, 132, 1)",
-          },
-          {
-            label: "Réel",
-            data: [400, 340, 550, 480, 170, 400, 340, 550, 480, 170, 400, 340],
-            backgroundColor: "rgba(255, 159, 64, 1)",
-          },
-        ],
-      };
+    fetch(`/forecast/forecast_financial_data/?year=${year}`)
+      .then((response) => response.json())
+      .then((data) => {
+        // Mettre à jour l'encaissement
+        if ($("#barChartEncaissement").length) {
+          var dataEncaissement = {
+            labels: [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Avr",
+              "Mai",
+              "Juin",
+              "Juil",
+              "Aoû",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Déc",
+            ],
+            datasets: [
+              {
+                label: "Prévision",
+                data: data.encaissement_prevision,
+                backgroundColor: "rgba(255, 99, 132, 1)",
+              },
+              {
+                label: "Réel",
+                data: data.encaissement_reel,
+                backgroundColor: "rgba(255, 159, 64, 1)",
+              },
+            ],
+          };
 
-      if ($("#barChartEncaissement").length) {
-        var barChartEncaissementCanvas = $("#barChartEncaissement")
-          .get(0)
-          .getContext("2d");
-        // This will get the first returned node in the jQuery collection.
-        var barChart = new Chart(barChartEncaissementCanvas, {
-          type: "bar",
-          data: dataEncaissement,
-          options: optionsEncaissement,
-        });
-        document.getElementById("encaissement-legend").innerHTML =
-          barChart.generateLegend();
-      }
+          if (barChartEncaissement) {
+            barChartEncaissement.destroy();
+          }
 
-      if ($("#barChartDecaissement").length) {
-        var barChartDecaissementCanvas = $("#barChartDecaissement")
-          .get(0)
-          .getContext("2d");
-        // This will get the first returned node in the jQuery collection.
-        var barChart = new Chart(barChartDecaissementCanvas, {
-          type: "bar",
-          data: dataDecaissement,
-          options: optionsDecaissement,
-        });
-        document.getElementById("decaissement-legend").innerHTML =
-          barChart.generateLegend();
-      }
-    });
+          var barChartEncaissementCanvas = $("#barChartEncaissement")
+            .get(0)
+            .getContext("2d");
+          barChartEncaissement = new Chart(barChartEncaissementCanvas, {
+            type: "bar",
+            data: dataEncaissement,
+            options: optionsEncaissement,
+          });
+          document.getElementById("encaissement-legend").innerHTML =
+            barChartEncaissement.generateLegend();
+        }
+
+        // Mettre à jour le décaissement
+        if ($("#barChartDecaissement").length) {
+          var dataDecaissement = {
+            labels: [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Avr",
+              "Mai",
+              "Juin",
+              "Juil",
+              "Aoû",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Déc",
+            ],
+            datasets: [
+              {
+                label: "Prévision",
+                data: data.decaissement_prevision,
+                backgroundColor: "rgba(255, 99, 132, 1)",
+              },
+              {
+                label: "Réel",
+                data: data.decaissement_reel,
+                backgroundColor: "rgba(255, 159, 64, 1)",
+              },
+            ],
+          };
+
+          if (barChartDecaissement) {
+            barChartDecaissement.destroy();
+          }
+
+          var barChartDecaissementCanvas = $("#barChartDecaissement")
+            .get(0)
+            .getContext("2d");
+          barChartDecaissement = new Chart(barChartDecaissementCanvas, {
+            type: "bar",
+            data: dataDecaissement,
+            options: optionsDecaissement,
+          });
+          document.getElementById("decaissement-legend").innerHTML =
+            barChartDecaissement.generateLegend();
+        }
+      });
+  }
+
+  // Fonction pour charger les données d'encaissement
+  function loadEncaissementData(year) {
+    if (year.toString().length !== 4) return;
+
+    fetch(`/forecast/forecast_financial_data/?year=${year}`)
+      .then((response) => response.json())
+      .then((data) => {
+        var dataEncaissement = {
+          labels: [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Avr",
+            "Mai",
+            "Juin",
+            "Juil",
+            "Aoû",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Déc",
+          ],
+          datasets: [
+            {
+              label: "Prévision",
+              data: data.encaissement_prevision,
+              backgroundColor: "rgba(255, 99, 132, 1)",
+            },
+            {
+              label: "Réel",
+              data: data.encaissement_reel,
+              backgroundColor: "rgba(255, 159, 64, 1)",
+            },
+          ],
+        };
+
+        if ($("#barChartEncaissement").length) {
+          // Détruire l'ancien graphique s'il existe
+          if (barChartEncaissement) {
+            barChartEncaissement.destroy();
+          }
+
+          var barChartEncaissementCanvas = $("#barChartEncaissement")
+            .get(0)
+            .getContext("2d");
+          barChartEncaissement = new Chart(barChartEncaissementCanvas, {
+            type: "bar",
+            data: dataEncaissement,
+            options: optionsEncaissement,
+          });
+          document.getElementById("encaissement-legend").innerHTML =
+            barChartEncaissement.generateLegend();
+        }
+      });
+  }
+
+  // Fonction pour charger les données de décaissement
+  function loadDecaissementData(year) {
+    if (year.toString().length !== 4) return;
+
+    fetch(`/forecast/forecast_financial_data/?year=${year}`)
+      .then((response) => response.json())
+      .then((data) => {
+        var dataDecaissement = {
+          labels: [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Avr",
+            "Mai",
+            "Juin",
+            "Juil",
+            "Aoû",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Déc",
+          ],
+          datasets: [
+            {
+              label: "Prévision",
+              data: data.decaissement_prevision,
+              backgroundColor: "rgba(255, 99, 132, 1)",
+            },
+            {
+              label: "Réel",
+              data: data.decaissement_reel,
+              backgroundColor: "rgba(255, 159, 64, 1)",
+            },
+          ],
+        };
+
+        if ($("#barChartDecaissement").length) {
+          // Détruire l'ancien graphique s'il existe
+          if (barChartDecaissement) {
+            barChartDecaissement.destroy();
+          }
+
+          var barChartDecaissementCanvas = $("#barChartDecaissement")
+            .get(0)
+            .getContext("2d");
+          barChartDecaissement = new Chart(barChartDecaissementCanvas, {
+            type: "bar",
+            data: dataDecaissement,
+            options: optionsDecaissement,
+          });
+          document.getElementById("decaissement-legend").innerHTML =
+            barChartDecaissement.generateLegend();
+        }
+      });
+  }
+
+  // Événement sur l'input encaissement
+  $anneeEncaissement.on("input", function () {
+    var year = $(this).val();
+    if (year.length === 4) {
+      loadEncaissementData(year);
+    }
+  });
+
+  // Événement sur l'input décaissement
+  $anneeDecaissement.on("input", function () {
+    var year = $(this).val();
+    if (year.length === 4) {
+      loadDecaissementData(year);
+    }
+  });
+
+  // Charger les données initiales
+  loadAllData(currentYear);
 });

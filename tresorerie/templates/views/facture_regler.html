@@ -1,0 +1,505 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load l10n %}
+{% block title %}Facture - Réglée{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="content-wrapper">
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+                role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<div class="content-wrapper">
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#newMouvementModal">
+            <i class="mdi mdi-file-plus mr-1"></i> Nouvel encaissement/décaissement
+        </button>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Facture réglée</h4>
+                    <div class="row mb-1">
+                        <div class="col-md-3">
+                            <input type="date" id="filterDate" class="form-control">
+                        </div>
+
+                        <div class="col-md-2">
+                            <button class="btn btn-primary btn-block">
+                                Afficher
+                            </button>
+                        </div>
+                        <div class="col-md-3 mt-2">
+                            Solde de départ : {{ solde_depart|default:0|floatformat:2 }} €
+                        </div>
+                        <div class="col-md-3 mt-2">
+                            Solde actualisé : {{ solde_actualise|default:0|floatformat:2 }} €
+                        </div>
+                    </div>
+
+                    <!-- <p class="card-description">
+                    Add class <code>.table-bordered</code>
+                  </p> -->
+                    <div class="table-responsive pt-3">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th colspan="4" class="text-center">Dépenses</th>
+                                    <th colspan="4" class="text-center">Encaissement</th>
+                                </tr>
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Fournisseur</th>
+                                    <th>Montant</th>
+                                    <th>Date</th>
+                                    <th>Numéro de facture</th>
+                                    <th>Client</th>
+                                    <th>Montant</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if factures %}
+                                {% for paire in factures %}
+                                <tr>
+                                    {# Colonnes Fournisseur (Dépenses) #}
+                                    {% if paire.fournisseur %}
+                                    <td>{{ paire.fournisseur.invoice_number }}</td>
+                                    <td>
+                                        {% if paire.fournisseur.company %}
+                                        {{ paire.fournisseur.company.name }}
+                                        {% else %}
+                                        Autre
+                                        -
+                                        <!-- ou -->
+                                        {{ paire.fournisseur.company|default:"Non spécifié" }}
+                                        <!-- ou -->
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">{{ paire.fournisseur.total_amount|default:0|floatformat:2 }}
+                                        €</td>
+                                    <td>{{ paire.fournisseur.invoice_date|date:'d/m/Y' }}</td>
+                                    {% else %}
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    {% endif %}
+
+                                    {# Colonnes Client (Encaissement) #}
+                                    {% if paire.client %}
+                                    <td>{{ paire.client.invoice_number }}</td>
+                                    <td>
+                                        {% if paire.client.company %}
+                                        {{ paire.client.company.name }}
+                                        {% else %}
+                                        Autre
+                                        -
+                                        <!-- ou -->
+                                        {{ paire.client.company|default:"Non spécifié" }}
+                                        <!-- ou -->
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">{{ paire.client.total_amount|default:0|floatformat:2 }} €
+                                    </td>
+                                    <td>{{ paire.client.invoice_date|date:'d/m/Y' }}</td>
+                                    {% else %}
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="2">
+                                        Total :
+                                    </td>
+                                    <td class="text-right"><b>{{ total_fournisseur|floatformat:2 }} €</b></td>
+                                    <td></td>
+                                    <td colspan="2">
+                                        Total :
+                                    </td>
+                                    <td class="text-right"><b>{{ total_client|floatformat:2 }} €</b></td>
+                                    <td></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">Aucune facture trouvée</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+
+                        </table>
+                        <div class="d-flex justify-content-end mt-3">
+                            <nav>
+                                <ul class="pagination mb-0">
+
+                                    <!-- Bouton PRÉCÉDENT -->
+                                    {% if factures.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="{% url 'facture_regler_page' %}?page={{ factures.previous_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                            Précédent
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Précédent</a>
+                                    </li>
+                                    {% endif %}
+
+                                    <!-- Affichage DYNAMIQUE des numéros de page -->
+                                    {% for i in factures.paginator.page_range %}
+                                    {% if factures.number == i %}
+                                    <!-- Page active (courante) -->
+                                    <li class="page-item active" aria-current="page">
+                                        <a class="page-link"
+                                            href="{% url 'facture_regler_page' %}?page={{ i }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                            {{ i }}
+                                        </a>
+                                    </li>
+                                    {% elif i > factures.number|add:'-3' and i < factures.number|add:'3' %} <!-- Pages
+                                        autour de la page courante -->
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                                href="{% url 'facture_regler_page' %}?page={{ i }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                                {{ i }}
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% endfor %}
+
+                                        <!-- Bouton SUIVANT -->
+                                        {% if factures.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                                href="{% url 'facture_regler_page' %}?page={{ factures.next_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                                Suivant
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Suivant</a>
+                                        </li>
+                                        {% endif %}
+
+                                </ul>
+                            </nav>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- container-scroller -->
+<!-- plugins:js -->
+<div class="modal fade" id="newMouvementModal" tabindex="-1" role="dialog" aria-labelledby="newInvoiceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+        <div class="modal-content" style="width: 150%;">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="newInvoiceModalLabel">Enregistrement</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="text-muted small">Solde de départ : <strong>{{solde_depart}} €</strong></div>
+                    <div class="text-muted small">Solde actualisé : <strong id="modalSoldeActualise">{{solde_actualise}}
+                            €</strong></div>
+                </div>
+
+                <form>
+                    <div class="form-group">
+                        <label for="">Date de paiement</label>
+                        <input type="date" name="" id="newDateInput" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Référence</label>
+                        {% localize off %}
+                        <select class="js-example-basic-single w-100" style="width: 100%;" id="newRefInput">
+                            <option value="">Référence</option>
+                            {% for ref in reference_list %}
+                            <option value="{{ ref.id }}" data-amount="{{ref.total_amount}}"
+                                data-supplier="{{ref.is_supplier}}">{{ ref.invoice_number }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% endlocalize %}
+                    </div>
+                </form>
+                <div class="form-group mt-1">
+                    <button id="addRefBtn" type="button" class="btn btn-sm btn-primary">
+                        Ajouter
+                    </button>
+                </div>
+
+                <!-- Table ajoutée ici (initialement masquée) -->
+                <table id="mouvementTable" class="table table-bordered mt-3" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Numéro référence/facture</th>
+                            <th>Date de paiement</th>
+                            <th>Montant</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mouvementTableBody">
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary validate-btn">Créer</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- Custom js for this page-->
+{% endblock %}
+
+{%block js %}
+
+
+<script>
+    var soldeActuel = 0;
+    var vraiSolde = 0;
+    function getSoldeDepuisAPI() {
+        fetch('/treasury/actual_solde/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    soldeActuel = data.solde;
+                    vraiSolde = data.solde;
+                    console.log('Solde récupéré:', data.solde);
+                } else {
+                    console.error('Erreur API:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur réseau:', error);
+            });
+    }
+
+    $('#newMouvementModal').on('hidden.bs.modal', function () {
+        // Optionnel : vider la liste si vous voulez repartir de zéro à chaque ouverture
+        // listSend = [];
+        // $('#mouvementTableBody').empty();
+        // Réactiver toutes les options désactivées
+        $('#newRefInput option').prop('disabled', false);
+        $('#newRefInput').trigger('change');
+        $('#mouvementTableBody').empty();
+        $('#mouvementTable').hide();
+        updateSoldeDisplay(vraiSolde);
+    });
+
+    $('#newMouvementModal').on('show.bs.modal', function () {
+        getSoldeDepuisAPI();
+    });
+
+    var listSend = [];
+
+    // Fonction pour désactiver une option
+    function disableOption(optionValue) {
+        $('#newRefInput option[value="' + optionValue + '"]').prop('disabled', true);
+        $('#newRefInput').trigger('change');
+    }
+
+    // Fonction pour réactiver une option
+    function enableOption(optionValue) {
+        $('#newRefInput option[value="' + optionValue + '"]').prop('disabled', false);
+        $('#newRefInput').trigger('change');
+    }
+
+    // Fonction pour extraire le nombre depuis le texte formaté
+    function extractNumberFromDisplay(text) {
+        // Enlève " €" et remplace la virgule par un point
+        return parseFloat(text.replace(' €', '').replace(',', '.')) || 0;
+    }
+
+    // Fonction pour mettre à jour l'affichage du solde
+    function updateSoldeDisplay(newSolde) {
+        $('#modalSoldeActualise').text(newSolde.toLocaleString('fr-FR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' €');
+    }
+
+    (function ($) {
+        // Fonction de formatage du montant
+        function formatAmount(amount) {
+            const num = parseFloat(amount) || 0;
+            return num.toLocaleString('fr-FR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function updateTableVisibility() {
+            if ($('#mouvementTableBody tr').length === 0) {
+                $('#mouvementTable').hide();
+            } else {
+                $('#mouvementTable').show();
+            }
+        }
+
+        // Add row
+        $('#addRefBtn').on('click', function () {
+            var selectedOption = $('#newRefInput option:selected');
+            var ref = selectedOption.val() || '';
+            var refText = selectedOption.text() || '';
+            var date = $('#newDateInput').val() || '';
+            var amount = Number(selectedOption.data('amount'));
+            var isSupplier = selectedOption.data('supplier');
+
+            if (!ref) {
+                alert('Veuillez sélectionner une facture');
+                return;
+            }
+
+            if (!date) {
+                const today = new Date();
+                date = today.toISOString().split('T')[0];
+                $('#newDateInput').val(date); // Optionnel : mettre à jour le champ
+            }
+
+            if (selectedOption.prop('disabled')) {
+                alert('Cette facture a déjà été ajoutée');
+                return;
+            }
+
+            listSend.push({
+                id: ref,
+                date_paiement: date
+            });
+
+            disableOption(ref);
+
+            var formattedAmount = formatAmount(amount);
+
+            var $tbody = $('#mouvementTableBody');
+            var type = "";
+            // Récupérer le solde actuel et le mettre à jour
+            if (isSupplier === 'True') {
+                type = "Décaissement";
+                soldeActuel -= amount;  // Dépense : on retire
+            } else {
+                type = "Encaissement";
+                soldeActuel += amount;  // Encaissement : on ajoute
+            }
+            var $row = $('<tr>')
+                .attr('data-ref-id', ref)
+                .attr('data-amount', amount)
+                .attr('data-supplier', isSupplier)
+                .append($('<td>').text(refText))
+                .append($('<td>').text(date))
+                .append($('<td>').text(formattedAmount + ' €'))
+                .append($('<td>').text(type))
+                .append($('<td>').html('<button type="button" class="btn btn-sm btn-danger delete-row-btn" title="Supprimer"><i class="mdi mdi-close"></i></button>'));
+
+            $tbody.append($row);
+
+            updateSoldeDisplay(soldeActuel);
+
+            $('#newRefInput').val('').trigger('change');
+            updateTableVisibility();
+        });
+
+        // Delete row (delegated)
+        $(document).on('click', '.delete-row-btn', function () {
+            var $row = $(this).closest('tr');
+            var refId = $row.data('ref-id');
+            var amount = parseFloat($row.data('amount'));
+            var isSupplier = $row.data('supplier');
+
+            if (refId) {
+                enableOption(refId);
+                listSend = listSend.filter(item => item.id != refId);
+            }
+
+            // Récupérer le solde actuel et le mettre à jour (opération inverse)
+            if (isSupplier === 'True') {
+                soldeActuel += amount;  // Dépense supprimée : on rajoute
+            } else {
+                soldeActuel -= amount;  // Encaissement supprimé : on retire
+            }
+            updateSoldeDisplay(soldeActuel);
+
+            $row.remove();
+            updateTableVisibility();
+        });
+
+        // Ensure initial visibility
+        $(function () {
+            updateTableVisibility();
+
+            if ($.fn.select2) {
+                $('#newRefInput').select2({
+                    templateResult: function (data) {
+                        if (data.element && data.element.disabled) {
+                            return $('<span style="opacity:0.5; background-color:#f0f0f0;">' + data.text + ' (déjà ajouté)</span>');
+                        }
+                        return data.text;
+                    }
+                });
+            }
+        });
+    })(jQuery);
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // On sélectionne tous les boutons "Valider"
+        document.querySelectorAll('.validate-btn').forEach(function (button) {
+            button.addEventListener('click', function () {
+                // Envoi via fetch POST
+                fetch("{% url 'new_paiements' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({
+                        listSend: listSend
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log("mety");
+                            window.location.reload();
+                        } else {
+                            alert("Erreur : " + (data.message || "Une erreur est survenue"));
+                        }
+                    })
+                    .catch(err => console.error(err));
+            });
+        });
+    });
+</script>
+{% endblock %}

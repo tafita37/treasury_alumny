@@ -1,13 +1,14 @@
 # views.py
 import json
 from django.utils import timezone
-
+from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 from django.contrib.auth.decorators import login_required
 from Constantes import MONTH_NAMES
 from prevision.metier.Forecast import Forecast
+from tresorerie.metier.FinancialTransaction import FinancialTransaction
 
 @require_GET
 @login_required(login_url='login_user_page') 
@@ -147,8 +148,91 @@ def prevision_chart_data(request):
         else:
             encaissement_prevision.append(0)
             decaissement_prevision.append(0)
+    
+    encaissement_reel = []
+    decaissement_reel = []
+    
+    for month in range(1, 13):
+        # Total des encaissements du mois
+        total_in = FinancialTransaction.objects.filter(
+            transaction_date__year=year,
+            transaction_date__month=month
+        ).aggregate(total=Sum('cash_inflow'))['total'] or 0
+        
+        # Total des décaissements du mois
+        total_out = FinancialTransaction.objects.filter(
+            transaction_date__year=year,
+            transaction_date__month=month
+        ).aggregate(total=Sum('cash_outflow'))['total'] or 0
+        
+        encaissement_reel.append(float(total_in))
+        decaissement_reel.append(float(total_out))        
+    
     data = {
         "encaissement_prevision": encaissement_prevision,
         "decaissement_prevision": decaissement_prevision,
+        "encaissement_reel": encaissement_reel,
+        "decaissement_reel": decaissement_reel,
+    }
+    return JsonResponse(data)
+
+@require_GET
+@login_required(login_url='login_user_page') 
+def prevision_chart_data_encaissement(request):
+    year = request.GET.get('year', timezone.now().year)
+    existing_forecasts = {f.months: f for f in Forecast.objects.filter(years=year)}
+    encaissement_prevision = []
+    for month in range(1, 13):
+        if month in existing_forecasts:
+            f = existing_forecasts[month]
+            encaissement_prevision.append(f.cash_inflow)
+        else:
+            encaissement_prevision.append(0)
+    
+    encaissement_reel = []
+    
+    for month in range(1, 13):
+        # Total des encaissements du mois
+        total_in = FinancialTransaction.objects.filter(
+            transaction_date__year=year,
+            transaction_date__month=month
+        ).aggregate(total=Sum('cash_inflow'))['total'] or 0
+        
+        encaissement_reel.append(float(total_in))    
+    
+    data = {
+        "encaissement_prevision": encaissement_prevision,
+        "encaissement_reel": encaissement_reel,
+    }
+    return JsonResponse(data)
+
+@require_GET
+@login_required(login_url='login_user_page') 
+def prevision_chart_data_decaissement(request):
+    year = request.GET.get('year', timezone.now().year)
+    existing_forecasts = {f.months: f for f in Forecast.objects.filter(years=year)}
+    decaissement_prevision = []
+    for month in range(1, 13):
+        if month in existing_forecasts:
+            f = existing_forecasts[month]
+            decaissement_prevision.append(f.cash_outflow)
+        else:
+            decaissement_prevision.append(0)
+
+    decaissement_reel = []
+    
+    for month in range(1, 13):
+        
+        # Total des décaissements du mois
+        total_out = FinancialTransaction.objects.filter(
+            transaction_date__year=year,
+            transaction_date__month=month
+        ).aggregate(total=Sum('cash_outflow'))['total'] or 0
+        
+        decaissement_reel.append(float(total_out))        
+    
+    data = {
+        "decaissement_prevision": decaissement_prevision,
+        "decaissement_reel": decaissement_reel,
     }
     return JsonResponse(data)

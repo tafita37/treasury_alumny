@@ -14,7 +14,7 @@
                 <div class="card-body">
                     {% localize off %}
                     <h4 class="card-title">Prévision de décaissement {{ year }}</h4>
-                    <form action="{% url 'prevision_encaissement_page' %}" method="GET">
+                    <form action="{% url 'prevision_decaissement_page' %}" method="GET">
                         <div class="row mb-1">
                             <div class="col-md-2">
                                 <input type="number" id="filterDate" class="form-control" value="{{ year }}"
