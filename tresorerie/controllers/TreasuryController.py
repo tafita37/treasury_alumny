@@ -1,6 +1,9 @@
 # views.py
+import json
+
 from django.contrib import messages
 
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
@@ -10,15 +13,22 @@ from django.core.paginator import Paginator, EmptyPage
 from tresorerie.metier.FinancialTransaction import FinancialTransaction
 from tresorerie.metier.Invoice import Invoice
 from datetime import datetime
-from django.db.models import Q
+from django.db.models import Q, FloatField, Sum, Value
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from tresorerie.metier.Payment import Payment
+from django.db.models.functions import Coalesce
 
 @require_GET
 @login_required(login_url='login_user_page') 
 def tresorerie_page(request):
-    return render(request, "views/tresorerie.html")
+    solde_actualise = FinancialTransaction.objects.aggregate(
+        solde=(
+            Coalesce(Sum('cash_inflow'), Value(0), output_field=FloatField()) - 
+            Coalesce(Sum('cash_outflow'), Value(0), output_field=FloatField())
+        )
+    )['solde']
+    return render(request, "views/tresorerie.html", {'solde_actualise': solde_actualise})
 
 @require_GET
 @login_required(login_url='login_user_page')
@@ -327,3 +337,147 @@ def new_mouvement_argent(request):
         messages.error(request, f"Erreur inattendue : {str(e)}")
     
     return redirect('mouvement_argent_page')
+
+@require_GET
+@login_required(login_url='login_user_page')
+def facture_regler_page(request):
+    # Récupération de toutes les factures
+    factures_list = Invoice.objects.all().exclude(status=2).order_by('-invoice_date')
+    
+    reference_list=Invoice.objects.filter(status=2).values('id', 'invoice_number', 'total_amount', 'is_supplier')
+    
+    solde_depart = FinancialTransaction.objects.filter(
+        cash_outflow=0,
+        cash_inflow__gt=0
+    ).order_by('transaction_date', 'id').values_list('cash_inflow', flat=True).first()
+    
+    solde_actualise = FinancialTransaction.objects.aggregate(
+        solde=(
+            Coalesce(Sum('cash_inflow'), Value(0), output_field=FloatField()) - 
+            Coalesce(Sum('cash_outflow'), Value(0), output_field=FloatField())
+        )
+    )['solde']
+    
+    # Séparer les factures par type
+    factures_client = list(factures_list.filter(is_supplier=False).order_by('-invoice_date'))
+    factures_fournisseur = list(factures_list.filter(is_supplier=True).order_by('-invoice_date'))
+    autre_transaction_fournisseur= FinancialTransaction.objects.filter(from_invoice=False, cash_outflow__gt=0).order_by('-transaction_date')
+    autre_transaction_client= FinancialTransaction.objects.filter(from_invoice=False, cash_inflow__gt=0).order_by('-transaction_date')
+    
+    # Créer des paires pour l'affichage côte à côte
+    factures_pairees = []
+    max_len = max(len(factures_client), len(factures_fournisseur))
+    
+    for i in range(max_len):
+        facture_client = factures_client[i] if i < len(factures_client) else None
+        facture_fournisseur = factures_fournisseur[i] if i < len(factures_fournisseur) else None
+        factures_pairees.append({
+            'client': facture_client,
+            'fournisseur': facture_fournisseur,
+        })
+        
+    max_len = max(len(autre_transaction_fournisseur), len(autre_transaction_client))
+    
+    for i in range(max_len):
+        transaction_fournisseur = Invoice(
+                                    invoice_number=autre_transaction_fournisseur[i].transaction_number, 
+                                    invoice_date=autre_transaction_fournisseur[i].transaction_date, 
+                                    total_amount=autre_transaction_fournisseur[i].cash_outflow
+                                ) if i < len(autre_transaction_fournisseur) else None
+        transaction_client = Invoice(
+                                    invoice_number=autre_transaction_client[i].transaction_number,
+                                    invoice_date=autre_transaction_client[i].transaction_date,
+                                    total_amount=autre_transaction_client[i].cash_inflow
+                                ) if i < len(autre_transaction_client) else None
+        factures_pairees.append({
+            'client': transaction_client,
+            'fournisseur': transaction_fournisseur,
+        })
+        
+        
+    
+    # Calculer les totaux pour TOUTES les factures (pas seulement la page courante)
+    total_client = sum(
+        paire['client'].total_amount 
+        for paire in factures_pairees 
+        if paire['client'] is not None
+    )
+
+    total_fournisseur = sum(
+        paire['fournisseur'].total_amount 
+        for paire in factures_pairees 
+        if paire['fournisseur'] is not None
+    )
+
+    
+    # Pagination
+    paginator = Paginator(factures_pairees, 20)
+    page_number = request.GET.get('page', 1)
+    
+    try:
+        factures = paginator.page(page_number)
+    except (EmptyPage, ValueError, TypeError):
+        factures = paginator.page(paginator.num_pages) if paginator.num_pages > 0 else paginator.page(1)
+    
+    context = {
+        'factures': factures,
+        'page_vide': factures.paginator.count == 0,
+        'total_fournisseur': total_fournisseur,
+        'total_client': total_client,
+        'solde_depart': solde_depart,
+        'solde_actualise': solde_actualise,
+        'reference_list': reference_list,
+    }
+    
+    return render(request, "views/facture_regler.html", context)
+
+@require_GET
+@login_required(login_url='login_user_page')
+def get_solde_actuel(request):
+    """API qui retourne le solde actualisé"""
+    try:
+        solde_actualise = FinancialTransaction.objects.aggregate(
+            solde=(
+                Coalesce(Sum('cash_inflow'), Value(0), output_field=FloatField()) - 
+                Coalesce(Sum('cash_outflow'), Value(0), output_field=FloatField())
+            )
+        )['solde']
+        
+        return JsonResponse({
+            'success': True,
+            'solde': float(solde_actualise)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+        
+@require_POST
+@login_required(login_url='login_user_page') 
+def new_paiements(request):
+    data = json.loads(request.body)
+    listeSend=data.get('listSend', [])
+    print(listeSend)
+    for item in listeSend:
+        id = item.get('id')
+        date_paiement = item.get('date_paiement')
+        
+        try:
+            invoice = Invoice.objects.get(id=id)
+            payment_date = datetime.strptime(date_paiement, '%Y-%m-%d').date()
+            
+            payment = Payment(
+                amount=invoice.total_amount,
+                payment_date=payment_date,
+                invoice=invoice
+            )
+            payment.save(user=request.user, status='') 
+        except Invoice.DoesNotExist:
+            messages.error(request, "Facture introuvable")
+        except ValidationError as e:
+            messages.error(request, str(e.messages[0]))
+        except Exception as e:
+            messages.error(request, f"Erreur inattendue : {str(e)}")
+
+    return JsonResponse({'success': True})

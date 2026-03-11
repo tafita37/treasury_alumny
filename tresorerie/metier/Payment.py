@@ -27,7 +27,7 @@ class Payment(models.Model):
                 # Récupérer la facture associée
                 invoice = self.invoice
                 
-                status = 3 if invoice.expected_payment_date < self.payment_date else 2
+                status = 3 if invoice.expected_payment_date < self.payment_date else 1
                 # Déterminer le type de transaction en fonction de is_supplier
                 if invoice.is_supplier:
                     # C'est une facture fournisseur → Décaissement (sortie d'argent)
@@ -47,7 +47,8 @@ class Payment(models.Model):
                         cash_outflow=cash_outflow,
                         transaction_date=self.payment_date,
                         description=description,
-                        user=user
+                        user=user,
+                        from_invoice=True  # Indiquer que cette transaction provient d'une facture
                         # Ajustez selon votre modèle User
                     )
                     
@@ -62,13 +63,6 @@ class Payment(models.Model):
                 
                 # Sauvegarder le paiement
                 super().save(*args, **kwargs)
-                
-                # Mettre à jour la facture
-                Invoice.objects.filter(id=invoice.id).update(
-                    actual_payment_date=self.payment_date,
-                    paid_amount=models.F('paid_amount') + self.amount,
-                    # Le status sera déterminé ailleurs ou passé
-                )
                 
             else:
                 # C'est une modification d'un paiement existant

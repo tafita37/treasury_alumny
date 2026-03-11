@@ -118,6 +118,7 @@ CREATE TABLE financial_transaction(
    transaction_date DATE NOT NULL,
    description TEXT NOT NULL,
    user_id INTEGER NOT NULL,
+   from_invoice BOOLEAN NOT NULL DEFAULT FALSE,
    PRIMARY KEY(id),
    -- UNIQUE(transaction_number),
    FOREIGN KEY(user_id) REFERENCES users(id)

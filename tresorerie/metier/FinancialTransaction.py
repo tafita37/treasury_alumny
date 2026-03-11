@@ -11,6 +11,7 @@ class FinancialTransaction(models.Model):
     cash_outflow = models.FloatField(db_column='cash_outflow')  # DOUBLE PRECISION = FloatField
     transaction_date = models.DateField(db_column='transaction_date')
     description = models.TextField(db_column='description')
+    from_invoice = models.BooleanField(default=False, db_column='from_invoice')  # Nouveau champ pour indiquer si la transaction provient d'une facture
     
     def save(self, *args, **kwargs):
         # Logique avant sauvegarde
